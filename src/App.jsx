@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, Mail, AlertTriangle, Search, Radio, UserCheck, CreditCard, KeyRound, Clock3 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Mail, AlertTriangle, Search, Radio, UserCheck, CreditCard, KeyRound, Clock3, Lock, User, ArrowRight, LogOut } from 'lucide-react';
 
 // Definitions for different cyber crime types supported by the detector
 const threatDatabase = {
@@ -43,9 +43,30 @@ const threatDatabase = {
 };
 
 export default function App() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+  const [authEmail, setAuthEmail] = useState('analyst@mailguardian.ai');
+  const [authPassword, setAuthPassword] = useState('••••••••');
+  const [authName, setAuthName] = useState('Security Analyst');
+
+  // App state
   const [emailText, setEmailText] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    if (authEmail && authPassword) {
+      setIsAuthenticated(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setResult(null);
+    setEmailText('');
+  };
 
   // PDF Report Generation
   const handleGenerateReport = () => {
@@ -64,32 +85,33 @@ export default function App() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 48);
+    doc.text(`Analyst: ${authEmail}`, 15, 54);
 
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text(`Verdict: ${result.verdict}`, 15, 62);
-    doc.text(`Classification: ${result.threat?.label || 'N/A'}`, 15, 72);
-    doc.text(`Risk Score: ${result.score}/100`, 15, 82);
-    doc.text(`Confidence: ${result.confidence}%`, 15, 92);
+    doc.text(`Verdict: ${result.verdict}`, 15, 68);
+    doc.text(`Classification: ${result.threat?.label || 'N/A'}`, 15, 78);
+    doc.text(`Risk Score: ${result.score}/100`, 15, 88);
+    doc.text(`Confidence: ${result.confidence}%`, 15, 98);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Detected Threat Signals:", 15, 108);
+    doc.text("Detected Threat Signals:", 15, 114);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     if (result.analysis && result.analysis.length > 0) {
       result.analysis.forEach((signal, idx) => {
-        doc.text(`• ${signal}`, 20, 118 + idx * 8);
+        doc.text(`• ${signal}`, 20, 124 + idx * 8);
       });
     } else {
-      doc.text("• No malicious indicators found.", 20, 118);
+      doc.text("• No malicious indicators found.", 20, 124);
     }
 
     doc.save(`Email_Threat_Report_${Date.now()}.pdf`);
   };
 
-  // Helper function to run analysis on given text
+  // Run analysis logic
   const runAnalysis = (textToAnalyze) => {
     if (!textToAnalyze.trim()) return;
     setLoading(true);
@@ -141,12 +163,116 @@ export default function App() {
     runAnalysis(emailText);
   };
 
-  // Handler when clicking on a threat classification card
   const handleSelectSample = (threatObj) => {
     setEmailText(threatObj.sampleText);
     runAnalysis(threatObj.sampleText);
   };
 
+  // --- Auth View (Login / Sign Up) ---
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 font-sans relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="w-full max-w-md bg-slate-900/70 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6 relative z-10">
+          
+          {/* Logo & Header */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+              <Radio className="w-10 h-10 text-indigo-400 animate-pulse" />
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight">AI Mail<span className="text-indigo-400">Guardian</span></h1>
+            <p className="text-xs text-slate-400 font-mono">ENTERPRISE THREAT ASSESSMENT PORTAL</p>
+          </div>
+
+          {/* Toggle Tabs */}
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setAuthMode('login')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authMode === 'login' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setAuthMode('signup')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${authMode === 'signup' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+              Register Analyst
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {authMode === 'signup' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    placeholder="Analyst Name"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-200"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Analyst Email ID</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="name@organization.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-200 font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Security Key / Password</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="password"
+                  required
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-200"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
+            >
+              {authMode === 'login' ? 'Authenticate Console' : 'Create Account & Launch'}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+
+          <div className="text-center pt-2">
+            <span className="text-[10px] font-mono text-slate-600">
+              SECURE ENCLAVE // RSA 4096-BIT ENCRYPTED SESSION
+            </span>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main Dashboard View ---
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8 font-sans">
       
@@ -161,8 +287,19 @@ export default function App() {
             <p className="text-sm text-slate-400">Real-time Email Threat Assessment System</p>
           </div>
         </div>
-        <div className="text-right flex items-center gap-2">
-           <span className="text-xs font-mono bg-slate-800 text-slate-400 px-3 py-1.5 rounded-full">v1.2 // ENGINEERING DEPT</span>
+        
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-bold text-slate-200">{authName}</p>
+            <p className="text-[10px] font-mono text-indigo-400">{authEmail}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-red-500/20 border border-slate-700/60 hover:border-red-500/40 text-slate-400 hover:text-red-400 transition cursor-pointer"
+            title="Lock Console / Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
